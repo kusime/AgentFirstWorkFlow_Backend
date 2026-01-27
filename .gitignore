@@ -32,3 +32,13 @@ htmlcov/
 # Project Specific
 # (If we wanted to ignore generated models, but we keep them for now)
 # models.py 
+
+# Node / Yarn
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions

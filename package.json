@@ -1,0 +1,9 @@
+{
+  "name": "holo-asset-management",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "yarn@4.1.0",
+  "devDependencies": {
+    "@dbml/cli": "^5.4.1"
+  }
+}
