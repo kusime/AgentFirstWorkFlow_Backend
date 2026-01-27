@@ -1,0 +1,126 @@
+// Use tables to define your schema
+// Use relationships to define foreign key constraints
+
+Table accountflowgroup {
+  id serial [pk, increment]
+  name text [not null]
+}
+
+Table currencytype {
+  id serial [pk, increment]
+  name text [not null]
+}
+
+Table account {
+  id serial [pk, increment]
+  currency_type integer [not null]
+  name text [not null]
+  max_debt_capacity "double precision"
+  soft_limit "double precision"
+  logic_account integer
+}
+
+Table account_accountflowgroup {
+  account integer [not null]
+  accountflowgroup integer [not null]
+  
+  Indexes {
+    (account, accountflowgroup) [pk]
+  }
+}
+
+Table flowtype {
+  id serial [pk, increment]
+  name text [not null]
+}
+
+Table actiontype {
+  id serial [pk, increment]
+  name text [not null]
+  flow_type integer [not null]
+}
+
+Table fxexchangecontrolrate {
+  id serial [pk, increment]
+  from_currency integer [not null]
+  to_currency integer [not null]
+  currency_rate "double precision"
+}
+
+Table holetype {
+  id serial [pk, increment]
+  name text [not null]
+}
+
+Table theholelevel {
+  id serial [pk, increment]
+  name text [not null]
+  level text [not null]
+}
+
+Table hole {
+  id uuid [pk]
+  the_hole_level integer [not null]
+  currency_type integer [not null]
+  amount "double precision"
+  is_currency_locked boolean
+  detail text [not null]
+  account integer [not null]
+  hole_type integer [not null]
+  created_at timestamp
+  require_physical_account boolean
+}
+
+Table tracetype {
+  id serial [pk, increment]
+  name text [not null]
+}
+
+Table holetrace {
+  id serial [pk, increment]
+  source_account integer [not null]
+  action_type integer [not null]
+  execute_at_fx_rate "double precision"
+  realtime_fx_rate "double precision"
+  currency_type integer [not null]
+  from_currency integer
+  detail text [not null]
+  amount "double precision"
+  trace_type integer [not null]
+}
+
+Table hole_holetrace {
+  hole uuid [not null]
+  holetrace integer [not null]
+
+  Indexes {
+    (hole, holetrace) [pk]
+  }
+}
+
+// 关系定义 (Relationships)
+
+Ref: account.currency_type > currencytype.id [delete: cascade]
+Ref: account.logic_account > account.id [delete: set null]
+
+Ref: account_accountflowgroup.account > account.id
+Ref: account_accountflowgroup.accountflowgroup > accountflowgroup.id
+
+Ref: actiontype.flow_type > flowtype.id [delete: cascade]
+
+Ref: fxexchangecontrolrate.from_currency > currencytype.id [delete: cascade]
+Ref: fxexchangecontrolrate.to_currency > currencytype.id [delete: cascade]
+
+Ref: hole.account > account.id [delete: cascade]
+Ref: hole.currency_type > currencytype.id [delete: cascade]
+Ref: hole.hole_type > holetype.id [delete: cascade]
+Ref: hole.the_hole_level > theholelevel.id [delete: cascade]
+
+Ref: holetrace.action_type > actiontype.id [delete: cascade]
+Ref: holetrace.currency_type > currencytype.id [delete: cascade]
+Ref: holetrace.from_currency > currencytype.id [delete: set null]
+Ref: holetrace.source_account > account.id [delete: cascade]
+Ref: holetrace.trace_type > tracetype.id [delete: cascade]
+
+Ref: hole_holetrace.hole > hole.id
+Ref: hole_holetrace.holetrace > holetrace.id

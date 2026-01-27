@@ -1,0 +1,34 @@
+# General
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.DS_Store
+Thumbs.db
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+
+# Distribution / Build
+build/
+dist/
+*.egg-info/
+htmlcov/
+.coverage
+.pytest_cache/
+.mypy_cache/
+
+# Logs
+*.log
+
+# Project Specific
+# (If we wanted to ignore generated models, but we keep them for now)
+# models.py 
