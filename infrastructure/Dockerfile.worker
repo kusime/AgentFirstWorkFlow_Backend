@@ -21,5 +21,5 @@ COPY . .
 # 注意：在生产环境中，Temporal Server 的地址通常通过环境变量传入
 # 我们的 run_worker.py 里应该改成 os.getenv("TEMPORAL_HOST", "localhost:7233")
 
-# 设置启动命令：直接运行 run_worker 模块
-CMD ["python", "-m", "workflows.run_worker"]
+# 设置启动命令：直接运行 app.worker.main 模块
+CMD ["python", "-m", "app.worker.main"]
