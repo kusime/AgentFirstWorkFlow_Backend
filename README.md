@@ -80,3 +80,67 @@ python -m db_tools.create_test_data
 ├── package.json               # Node 依赖配置 (DBML CLI)
 └── requirements.txt           # Python 依赖配置
 ```
+
+---
+
+# Holo Flow Core - Temporal 流程编排 (Part 2)
+
+本项目集成了 **Temporal** 分布式工作流引擎，采用 **模块化单体 (Modular Monolith)** 架构，实现了基于 **领域驱动设计 (DDD)** 和 **整洁架构 (Clean Architecture)** 的业务逻辑编排。
+
+## 核心架构 (Architecture)
+
+### 1. 领域驱动与模块化 (DDD & Modularity)
+- **高内聚**: 采用 `app/domains/<domain>/` 结构，将业务逻辑 (`activities.py`) 与流程编排 (`workflows.py`) 物理分离。
+- **类型安全**: 全面使用 Pydantic 定义 DTO (Data Transfer Object)，配合自定义 `DataConverter` 实现自动序列化。
+
+### 2. 插件式 Worker (Plugin Pattern)
+- **动态发现**: Worker 不硬编码业务模块，而是通过 `importlib` 动态加载。
+- **零代码注册**: 新增业务领域只需配置环境变量 `ENABLE_DOMAINS`，无需修改 Worker 代码。
+
+### 3. 物理隔离 (Physical Isolation)
+- **环境隔离**: 支持通过 Docker Compose 定义多个 Worker 服务（如 `worker-hello`, `worker-pizza`）。
+- **故障隔离**: 即使共享同一个镜像，不同容器只加载指定的业务代码，实现真正的故障隔离与独立扩容。
+
+## 目录结构 (Directory Structure - Part 2)
+
+```text
+app/
+├── common/                 # 公共组件 (Infrastructure Layer)
+├── domains/                # 业务领域层 (Domain Layer)
+│   ├── hello/              # 示例领域
+│   └── pizza/              # 核心业务领域 (DDD)
+│       ├── models.py       # Pydantic DTOs
+│       ├── activities.py   # 业务逻辑 (Business Rules)
+│       └── workflows.py    # 流程编排 (Use Cases)
+└── worker/                 # 接口层 (Interface Layer)
+    └── main.py             # 通用 Worker 启动器
+infrastructure/             # 部署配置
+└── Dockerfile.worker       # Worker 镜像
+scripts/                    # 客户端测试脚本
+├── test_hello.py
+└── test_pizza.py
+```
+
+## 快速开始 (Temporal Quick Start)
+
+### 1. 启动全栈服务
+```bash
+# 启动 PostgreSQL, Temporal Server, UI 及所有 Workers
+docker-compose up -d --build
+```
+
+### 2. 运行测试流程
+```bash
+# 运行 Hello World 流程
+python -m scripts.test_hello
+
+# 运行 DDD Pizza 订单流程
+python -m scripts.test_pizza
+```
+
+### 3. 理解隔离策略
+查看 `docker-compose.yml` 可以看到我们启动了两个隔离的 Worker：
+- `worker-hello`: 只处理 `app.domains.hello`
+- `worker-pizza`: 只处理 `app.domains.pizza`
+
+详细架构文档请参考: [docs/temporal/architecture_and_refactor_zh.md](docs/temporal/architecture_and_refactor_zh.md)
