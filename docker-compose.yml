@@ -45,6 +45,19 @@ services:
     networks:
       - holo_network
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: holo_worker
+    restart: always
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+    depends_on:
+      - temporal
+    networks:
+      - holo_network
+
 volumes:
   postgres_data:
 

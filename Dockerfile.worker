@@ -1,0 +1,25 @@
+# 使用轻量级的 Python 3.12 基础镜像
+FROM python:3.12-slim
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置环境变量，防止 Python 生成 .pyc 文件，并让 stdout/stderr buffer 立即输出
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装依赖
+# 将 update 和 install 合并在一个 RUN 指令中以减少镜像层数
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制当前目录下的所有代码到容器中
+COPY . .
+
+# 注意：在生产环境中，Temporal Server 的地址通常通过环境变量传入
+# 我们的 run_worker.py 里应该改成 os.getenv("TEMPORAL_HOST", "localhost:7233")
+
+# 设置启动命令：直接运行 run_worker 模块
+CMD ["python", "-m", "workflows.run_worker"]
