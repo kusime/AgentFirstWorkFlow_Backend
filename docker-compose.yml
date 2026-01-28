@@ -13,6 +13,41 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - holo_network
+
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    container_name: holo_temporal
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=postgres
+    depends_on:
+      - postgres
+    ports:
+      - "7233:7233"
+    networks:
+      - holo_network
+
+  temporal-ui:
+    image: temporalio/ui:2.30.2
+    container_name: holo_temporal_ui
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    depends_on:
+      - temporal
+    ports:
+      - "8080:8080"
+    networks:
+      - holo_network
 
 volumes:
   postgres_data:
+
+networks:
+  holo_network:
+    driver: bridge
