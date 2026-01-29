@@ -2,16 +2,13 @@ import os
 import sys
 import datetime
 import random
+import uuid
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
-# Proper package import (Requires running from project root)
-# from db_tools.out.models import Base, Users, Locations, Assets, MaintenanceLogs, AssetAssignments
-# UPDATE: Path moved to tools/db_utils/examples/out/models.py
-# UPDATE: Schema changed to Accounting (Hole/Account). Commenting out old models to prevent ImportError.
-from tools.db_utils.examples.out.models import Base 
-# Users, Locations, Assets, MaintenanceLogs, AssetAssignments (Not in current schema)
+# Proper package import (Requires running from project root via PYTHONPATH=.)
+from tools.db_utils.examples.out.models import Base, Currencytype, Account, Holetype, Theholelevel, Hole
 
 # Load env to get connection string components
 load_dotenv()
@@ -32,74 +29,51 @@ def get_or_create(session, model, **kwargs):
     else:
         instance = model(**kwargs)
         session.add(instance)
-        # Flush to get ID, but don't commit yet so we can rollback entire transaction if needed
         session.flush() 
         return instance, True
 
 def create_data():
+    print(f"Connecting to {DATABASE_URL}...")
     engine = create_engine(DATABASE_URL)
     session = Session(engine)
-    print("--- Creating Comprehensive Test Data ---")
+    print("--- Creating Financial Test Data (Double Entry / Hole Theory) ---")
 
     try:
-        # 1. Location
-        loc_name = f"Warehouse Sector {random.randint(1, 99)}"
-        location, created = get_or_create(session, Locations, name=loc_name)
+        # 1. Currency Types
+        usd, _ = get_or_create(session, Currencytype, name="USD", id=1) # ID explicitly set for example
+        eur, _ = get_or_create(session, Currencytype, name="EUR", id=2)
+        print(f"✅ Currencies: {usd.name}, {eur.name}")
+
+        # 2. Hole Types & Levels
+        h_type, _ = get_or_create(session, Holetype, name="Standard Gap", id=1)
+        h_level, _ = get_or_create(session, Theholelevel, name="Surface", level="1", id=1)
+        print(f"✅ Metadata: {h_type.name}, Level {h_level.level}")
+
+        # 3. Account
+        # Account needs a currency type
+        acc_name = f"Main Vault {random.randint(100, 999)}"
+        account, created = get_or_create(session, Account, name=acc_name, currency_type=usd.id)
         if created:
-            location.address = "Industrial Zone 42"
-            print(f"✅ Created Location: {location.name} (ID: {location.id})")
+            print(f"✅ Created Account: {account.name} (ID: {account.id})")
         else:
-            print(f"ℹ️  Found Location: {location.name} (ID: {location.id})")
+            print(f"ℹ️  Found Account: {account.name}")
 
-        # 2. User
-        username = f"technician_{random.randint(100, 999)}"
-        user, created = get_or_create(session, Users, username=username)
-        if created:
-            user.role = "Senior Technician"
-            user.created_at = datetime.datetime.now()
-            print(f"✅ Created User: {user.username} (ID: {user.id})")
-        else:
-            print(f"ℹ️  Found User: {user.username} (ID: {user.id})")
-
-        # 3. Asset
-        serial_no = f"SN-{random.randint(10000, 99999)}"
-        asset, created = get_or_create(session, Assets, serial_number=serial_no)
-        if created:
-            asset.name = "Holographic Projector X1"
-            asset.status = "active"
-            asset.location_id = location.id
-            asset.cost = 12500.50
-            asset.specifications = {"resolution": "8K", "lumens": 5000}
-            asset.warranty_info = "3 Years Gold Support"
-            print(f"✅ Created Asset: {asset.name} (SN: {asset.serial_number}, ID: {asset.id})")
-        else:
-            print(f"ℹ️  Found Asset: {asset.name} (SN: {asset.serial_number}, ID: {asset.id})")
-
-        # 4. Asset Assignment
-        # Check if already assigned
-        assignment = session.execute(select(AssetAssignments).filter_by(asset_id=asset.id, user_id=user.id)).scalars().first()
-        if not assignment:
-            assignment = AssetAssignments(
-                asset_id=asset.id,
-                user_id=user.id,
-                assigned_at=datetime.datetime.now()
-            )
-            session.add(assignment)
-            print(f"✅ Assigned Asset {asset.id} to User {user.id}")
-        else:
-            print(f"ℹ️  Asset {asset.id} already assigned to User {user.id}")
-
-        # 5. Maintenance Log
-        log = MaintenanceLogs(
-            asset_id=asset.id,
-            technician_name=user.username,
-            description="Initial calibration and firmware update.",
-            service_date=datetime.date.today(),
-            cost=150.00,
-            details={"firmware_version": "2.5.1"}
+        # 4. Create a Hole (Transaction/Anomoly)
+        # Hole uses UUID for ID
+        hole_id = uuid.uuid4()
+        hole = Hole(
+            id=hole_id,
+            detail="Unexpected variance in sector 7",
+            amount=1000.50,
+            account=account.id,
+            currency_type=usd.id,
+            hole_type=h_type.id,
+            the_hole_level=h_level.id,
+            created_at=datetime.datetime.now(),
+            is_currency_locked=False
         )
-        session.add(log)
-        print(f"✅ Added Maintenance Log for Asset {asset.id}")
+        session.add(hole)
+        print(f"✅ Created Hole: {hole.detail} (Amount: {hole.amount})")
 
         session.commit()
         print("\n--- \u2728 All Data Committed Successfully ---")
@@ -107,6 +81,9 @@ def create_data():
     except Exception as e:
         session.rollback()
         print(f"\n\u274c Error creating data: {e}")
+        # Print full traceback for debugging
+        import traceback
+        traceback.print_exc()
     finally:
         session.close()
 
