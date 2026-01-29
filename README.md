@@ -10,7 +10,7 @@
   - 支持复杂的表关系可视化与离线编译。
 
 - **全自动化同步工作流 (Auto-Sync Workflow)**
-  - 运行 `python -m db_tools.sync_schema` 即可一键完成：
+  - 运行 `python tools/db_utils/manage_db.py sync` 即可一键完成：
     1. **编译**: 自动调用 `@dbml/cli` 将 DBML 编译为标准 SQL (`schema.sql`)。
     2. **迁移**: 对比当前数据库状态，自动生成 Alembic 迁移脚本。
     3. **ORM 生成**: 根据最新 Schema 自动生成 Python SQLAlchemy Models (`db_tools/out/models.py`)。
@@ -23,9 +23,8 @@
   - 采用标准的 Python 包结构 (`db_tools` package)。
   - 生成的 `models.py` 支持 IDE 智能提示与类型检查。
 
-## 快速开始 (Quick Start)
 
-### 1. 环境准备 (Prerequisites)
+## 环境准备 (Prerequisites)
 
 本项目依赖 **Docker**, **Python 3.14+** 和 **Node.js/Yarn**。
 
@@ -38,47 +37,36 @@ docker-compose up -d
 yarn install
 
 # 3. 安装 Python 依赖
-# 推荐使用 uv (速度更快)
 uv pip install -r requirements.txt
-# 或者使用 pip
-pip install -r requirements.txt
-```
-
-### 2. 核心工作流 (Workflow)
-
-**步骤 A: 修改设计**
-编辑 `db_tools/design.dbml` 文件，调整表结构或字段。
-
-**步骤 B: 同步变更**
-运行同步脚本，让系统自动处理 SQL 转换、数据库迁移和代码生成：
-
-```bash
-# 注意：必须在项目根目录下，使用 -m 模块方式运行
-python -m db_tools.sync_schema
-```
-
-**步骤 C: 生成测试数据 (可选)**
-验证数据模型是否正常工作：
-
-```bash
-python -m db_tools.create_test_data
 ```
 
 ## 目录结构 (Directory Structure)
 
 ```text
 .
-├── db_tools/                  # 数据库工具核心目录
-│   ├── design.dbml            # [核心] 数据库设计原稿 (编辑此处)
-│   ├── schema.sql             # [自动] 编译后的 SQL 文件 (勿手动编辑)
-│   ├── sync_schema.py         # [核心] 自动化同步脚本
-│   ├── create_test_data.py    # 测试数据生成脚本
-│   └── out/
-│       └── models.py          # [自动] SQLAlchemy ORM 模型文件
-├── alembic/                   # 数据库迁移历史版本 (Versions)
+├── tools/
+│   └── db_utils/              # 数据库工具核心目录
+│       ├── manage_db.py       # [核心] CLI 管理工具 (Sync/Auto-generate)
+│       ├── alembic/           # [配置] 迁移环境与脚本
+│       └── examples/          # [示例] 设计稿与测试数据
+│           ├── design.dbml    # 示例 DBML 设计
+│           └── out/models.py  # 生成的 ORM 模型
+├── app/                       # 核心应用代码
 ├── docker-compose.yml         # 数据库容器配置
-├── package.json               # Node 依赖配置 (DBML CLI)
 └── requirements.txt           # Python 依赖配置
+```
+
+## 核心工作流 (Workflow)
+
+**步骤 A: 管理数据库**
+使用统一的 CLI 工具进行同步：
+
+```bash
+# 生成 ORM 代码
+python tools/db_utils/manage_db.py gen-orm
+
+# 全自动同步 Schema (DBML -> SQL -> DB -> Code)
+python tools/db_utils/manage_db.py sync --msg "update_schema"
 ```
 
 ---
@@ -105,19 +93,22 @@ python -m db_tools.create_test_data
 
 ```text
 app/
-├── common/                 # 公共组件 (Infrastructure Layer)
-├── domains/                # 业务领域层 (Domain Layer)
-│   ├── hello/              # 示例领域
+├── common/                 # 公共组件
+├── domains/                # 业务领域层
 │   └── pizza/              # 核心业务领域 (DDD)
-│       ├── models.py       # Pydantic DTOs
-│       ├── activities.py   # 业务逻辑 (Business Rules)
-│       └── workflows.py    # 流程编排 (Use Cases)
-└── worker/                 # 接口层 (Interface Layer)
-    └── main.py             # 通用 Worker 启动器
-infrastructure/             # 部署配置
-└── Dockerfile.worker       # Worker 镜像
+│       ├── sdk/            # [Contracts] DTOs & Constants
+│       ├── gateway.py      # [Adapters] Activity 实现
+│       ├── usecases.py     # [Logic] 纯业务逻辑
+│       ├── services.py     # [Ports] 服务接口定义
+│       └── infrastructure/ # [Impl] 数据库/外部服务实现
+├── workflows/              # 流程编排层 (Temporal Workflows)
+│   └── pizza_workflow.py   # Pizza 流程定义
+└── infrastructure/         # 全局基础设施
+    └── workflows/          # Worker 实现与配置
+        ├── worker.py       # 通用 Worker 启动器
+        ├── config.py       # 配置管理
+        └── converter.py    # 自定义 DataConverter
 scripts/                    # 客户端测试脚本
-├── test_hello.py
 └── test_pizza.py
 ```
 
@@ -131,16 +122,12 @@ docker-compose up -d --build
 
 ### 2. 运行测试流程
 ```bash
-# 运行 Hello World 流程
-python -m scripts.test_hello
-
 # 运行 DDD Pizza 订单流程
 python -m scripts.test_pizza
 ```
 
 ### 3. 理解隔离策略
-查看 `docker-compose.yml` 可以看到我们启动了两个隔离的 Worker：
-- `worker-hello`: 只处理 `app.domains.hello`
+查看 `docker-compose.yml` 可以看到我们启动了隔离的 Worker：
 - `worker-pizza`: 只处理 `app.domains.pizza`
 
 详细架构文档请参考: [docs/temporal/architecture_and_refactor_zh.md](docs/temporal/architecture_and_refactor_zh.md)
