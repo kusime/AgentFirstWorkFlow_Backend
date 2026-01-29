@@ -46,16 +46,21 @@ class PizzaActivitiesImpl(PizzaActivities):
     使用依赖注入初始化 UseCases。
     """
     
-    def __init__(self):
-        # 在这里进行依赖注入 (Dependency Injection)
-        # 在真实应用中，这些依赖可能由外部容器传入
-        self.calculate_bill_usecase = CalculateBillUseCase()
-        
-        payment_gateway = MockPaymentGateway()
-        self.payment_usecase = ProcessPaymentUseCase(payment_gateway)
-        
-        delivery_service = MockDeliveryService()
-        self.delivery_usecase = ArrangeDeliveryUseCase(delivery_service)
+    def __init__(
+        self,
+        calculate_bill_usecase: CalculateBillUseCase,
+        payment_usecase: ProcessPaymentUseCase,
+        delivery_usecase: ArrangeDeliveryUseCase,
+    ):
+        """
+        Args:
+            calculate_bill_usecase: 计算账单 UseCase (依赖注入)
+            payment_usecase: 支付 UseCase (依赖注入)
+            delivery_usecase: 配送 UseCase (依赖注入)
+        """
+        self.calculate_bill_usecase = calculate_bill_usecase
+        self.payment_usecase = payment_usecase
+        self.delivery_usecase = delivery_usecase
 
     @activity.defn(name=ACTIVITY_CALCULATE_BILL)
     async def calculate_bill(self, order: PizzaOrder) -> Bill:

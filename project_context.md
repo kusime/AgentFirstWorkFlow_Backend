@@ -29,7 +29,48 @@ WORKFLOW_CLASSES = []  # Worker will dynamically import from app.workflows.pizza
 import inspect
 
 # 实例化 Gateway
-_impl = PizzaActivitiesImpl()
+# ============================================================================
+# Composition Root (依赖注入组装)
+# ============================================================================
+import os
+from app.domains.pizza.usecases import (
+    CalculateBillUseCase,
+    ProcessPaymentUseCase,
+    ArrangeDeliveryUseCase,
+)
+from app.domains.pizza.infrastructure.payment.mock_payment_gateway import MockPaymentGateway
+from app.domains.pizza.infrastructure.delivery.mock_delivery_service import MockDeliveryService
+
+# 1. 识别环境
+ENV = os.getenv("ENV", "DEV")
+
+# 2. 实例化 Infrastructure Implementations
+if ENV == "PROD":
+    # PROD 环境下使用真实的实现 (示例，目前留空 placeholders)
+    # from app.domains.pizza.infrastructure.payment.stripe_gateway import StripePaymentGateway
+    # from app.domains.pizza.infrastructure.delivery.uber_delivery import UberDeliveryService
+    # payment_gateway = StripePaymentGateway(...)
+    # delivery_service = UberDeliveryService(...)
+    # 目前Fallback到Mock避免运行错误
+    print(f"[PizzaDomain] Initializing in PROD mode (using Mock for demo)")
+    payment_gateway = MockPaymentGateway()
+    delivery_service = MockDeliveryService()
+else:
+    print(f"[PizzaDomain] Initializing in {ENV} mode (using Mocks)")
+    payment_gateway = MockPaymentGateway()
+    delivery_service = MockDeliveryService()
+
+# 3. 实例化 UseCases (注入 Infrastructure)
+calculate_bill_usecase = CalculateBillUseCase()
+payment_usecase = ProcessPaymentUseCase(payment_gateway)
+delivery_usecase = ArrangeDeliveryUseCase(delivery_service)
+
+# 4. 实例化 Gateway (注入 UseCases)
+_impl = PizzaActivitiesImpl(
+    calculate_bill_usecase=calculate_bill_usecase,
+    payment_usecase=payment_usecase,
+    delivery_usecase=delivery_usecase,
+)
 
 # 自动发现所有带有 @activity.defn 装饰器的方法 (Reflection)
 # 避免手动维护 activities 列表
@@ -93,16 +134,21 @@ class PizzaActivitiesImpl(PizzaActivities):
     使用依赖注入初始化 UseCases。
     """
     
-    def __init__(self):
-        # 在这里进行依赖注入 (Dependency Injection)
-        # 在真实应用中，这些依赖可能由外部容器传入
-        self.calculate_bill_usecase = CalculateBillUseCase()
-        
-        payment_gateway = MockPaymentGateway()
-        self.payment_usecase = ProcessPaymentUseCase(payment_gateway)
-        
-        delivery_service = MockDeliveryService()
-        self.delivery_usecase = ArrangeDeliveryUseCase(delivery_service)
+    def __init__(
+        self,
+        calculate_bill_usecase: CalculateBillUseCase,
+        payment_usecase: ProcessPaymentUseCase,
+        delivery_usecase: ArrangeDeliveryUseCase,
+    ):
+        """
+        Args:
+            calculate_bill_usecase: 计算账单 UseCase (依赖注入)
+            payment_usecase: 支付 UseCase (依赖注入)
+            delivery_usecase: 配送 UseCase (依赖注入)
+        """
+        self.calculate_bill_usecase = calculate_bill_usecase
+        self.payment_usecase = payment_usecase
+        self.delivery_usecase = delivery_usecase
 
     @activity.defn(name=ACTIVITY_CALCULATE_BILL)
     async def calculate_bill(self, order: PizzaOrder) -> Bill:
