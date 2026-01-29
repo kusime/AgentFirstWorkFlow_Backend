@@ -137,15 +137,15 @@ def main():
     
     # Command: generate-orm
     cmd_gen = subparsers.add_parser("gen-orm", help="Generate SQLAlchemy models from DBML")
-    cmd_gen.add_argument("--dbml", default="tools/db_utils/design.dbml", help="Path to DBML file")
-    cmd_gen.add_argument("--out", default="tools/db_utils/out/models.py", help="Output path for models.py")
+    cmd_gen.add_argument("--dbml", default="tools/db_utils/examples/design.dbml", help="Path to DBML file")
+    cmd_gen.add_argument("--out", default="tools/db_utils/examples/out/models.py", help="Output path for models.py")
     
     # Command: sync (Full Flow)
     cmd_sync = subparsers.add_parser("sync", help="Generate ORM + Create Migration")
-    cmd_sync.add_argument("--dbml", default="tools/db_utils/design.dbml")
-    cmd_sync.add_argument("--out", default="tools/db_utils/out/models.py")
+    cmd_sync.add_argument("--dbml", default="tools/db_utils/examples/design.dbml")
+    cmd_sync.add_argument("--out", default="tools/db_utils/examples/out/models.py")
     cmd_sync.add_argument("--msg", default="auto_sync", help="Migration message")
-    cmd_sync.add_argument("--ini", default="tools/db_utils/alembic.ini", help="Path to alembic.ini")
+    cmd_sync.add_argument("--ini", default="tools/db_utils/alembic/alembic.ini", help="Path to alembic.ini")
 
     args = parser.parse_args()
     

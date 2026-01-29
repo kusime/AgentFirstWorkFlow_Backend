@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
 # Proper package import (Requires running from project root)
-from db_tools.out.models import Base, Users, Locations, Assets, MaintenanceLogs, AssetAssignments
+# from db_tools.out.models import Base, Users, Locations, Assets, MaintenanceLogs, AssetAssignments
+# UPDATE: Path moved to tools/db_utils/examples/out/models.py
+# UPDATE: Schema changed to Accounting (Hole/Account). Commenting out old models to prevent ImportError.
+from tools.db_utils.examples.out.models import Base 
+# Users, Locations, Assets, MaintenanceLogs, AssetAssignments (Not in current schema)
 
 # Load env to get connection string components
 load_dotenv()

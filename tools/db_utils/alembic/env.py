@@ -27,7 +27,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(o
 sys.path.insert(0, project_root)
 
 # Import from the new location in tools/db_utils
-from tools.db_utils.out.models import Base
+from tools.db_utils.examples.out.models import Base
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
