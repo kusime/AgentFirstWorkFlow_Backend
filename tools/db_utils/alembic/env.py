@@ -20,10 +20,14 @@ import os
 import sys
 
 # Add the project directory to the python path
-project_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+# Add the project directory to the python path
+# Location: tools/db_utils/alembic/env.py
+# Root is 3 levels up: ../../../
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 sys.path.insert(0, project_root)
 
-from db_tools.out.models import Base
+# Import from the new location in tools/db_utils
+from tools.db_utils.out.models import Base
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
