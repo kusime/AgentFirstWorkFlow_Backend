@@ -32,14 +32,21 @@ class PydanticJSONPayloadConverter(EncodingPayloadConverter):
         return None
 
     def from_payload(self, payload: Payload, type_hint: Optional[Type] = None) -> Any:
-        """Convert a standard JSON payload back to a Pydantic object."""
-        if type_hint and issubclass(type_hint, BaseModel):
-            data = payload.data.decode("utf-8")
-            # Deserialize using the type hint class
-            return type_hint.model_validate_json(data) if hasattr(type_hint, "model_validate_json") else type_hint.parse_raw(data)
+        """Convert a Pydantic JSON payload back to a Pydantic object."""
+        # 只处理我们自己编码的payload（"json/pydantic"）
+        payload_encoding = payload.metadata.get("encoding", b"").decode("utf-8")
+        if payload_encoding != self.encoding:
+            return None  # 让其他converter处理
+            
+        data_str = payload.data.decode("utf-8")
         
-        # Fallback if no type hint is provided (returns dict)
-        return json.loads(payload.data.decode("utf-8"))
+        # 如果有type hint且是BaseModel，使用它
+        if type_hint and issubclass(type_hint, BaseModel):
+            return type_hint.model_validate_json(data_str) if hasattr(type_hint, "model_validate_json") else type_hint.parse_raw(data_str)
+        
+        # 没有type hint时，返回dict（但这不应该发生在正确配置的workflow中）
+        return json.loads(data_str)
+
 
 class PydanticDataConverter(CompositePayloadConverter):
     """

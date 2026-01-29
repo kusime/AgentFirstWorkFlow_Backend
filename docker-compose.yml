@@ -45,24 +45,11 @@ services:
     networks:
       - holo_network
 
-  worker-hello:
-    build:
-      context: .
-      dockerfile: infrastructure/Dockerfile.worker
-    container_name: holo_worker_hello
-    restart: always
-    environment:
-      - TEMPORAL_HOST=temporal:7233
-      - ENABLE_DOMAINS=app.domains.hello
-    depends_on:
-      - temporal
-    networks:
-      - holo_network
 
   worker-pizza:
     build:
       context: .
-      dockerfile: infrastructure/Dockerfile.worker
+      dockerfile: app/infrastructure/Dockerfile.worker
     container_name: holo_worker_pizza
     restart: always
     environment:

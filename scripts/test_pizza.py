@@ -1,11 +1,14 @@
 import asyncio
 import os
+import time
 from temporalio.client import Client
 from temporalio.converter import DataConverter
-from app.common.converter import PydanticDataConverter
+from app.infrastructure.workflows.converter import PydanticDataConverter
 from app.domains.pizza import TASK_QUEUE
-from app.domains.pizza.workflows import DDDPizzaWorkflow
-from app.domains.pizza.models import PizzaOrder, PizzaItem, Address
+# 从新的 workflows 目录导入 workflow
+from app.workflows.pizza_workflow import PizzaOrderWorkflow
+# 从 SDK contracts 导入 DTOs
+from app.domains.pizza.sdk.contracts import PizzaOrder, PizzaItem, Address
 
 async def main():
     temporal_host = os.getenv("TEMPORAL_HOST", "localhost:7233")
@@ -33,11 +36,13 @@ async def main():
         is_vip=False
     )
 
-    print(f"Submitting 'DDDPizzaWorkflow' to queue: '{TASK_QUEUE}'...")
+    # 使用时间戳避免ID冲突
+    workflow_id = f"pizza-order-{int(time.time())}"
+    print(f"Submitting 'PizzaOrderWorkflow' to queue: '{TASK_QUEUE}' with ID: {workflow_id}")
     result = await client.execute_workflow(
-        DDDPizzaWorkflow.run,
+        PizzaOrderWorkflow.run,
         order,
-        id=f"pizza-order-{order.order_id}",
+        id=workflow_id,
         task_queue=TASK_QUEUE,
     )
     print(f"✅ Workflow Result: {result}")
